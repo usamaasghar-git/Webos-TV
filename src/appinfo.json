@@ -1,0 +1,12 @@
+{
+    "vendor": "SNSGroup",
+    "icon": "images/icon.png",
+    "main": "dashboard.html",
+    "id": "com.bitmovin.demo.webapp",
+    "title": "SNSGroup",
+    "type": "web",
+    "version": "0.0.1",
+    "iconColor": "#ffffff",
+    "bgColor": "#ffffff",
+    "uiRevision": 2
+}

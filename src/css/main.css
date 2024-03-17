@@ -1,0 +1,40 @@
+        /* Define your styles here */
+        body {
+            background-color: #ffffff; /* white */
+            font-family: 'Bevitnam', sans-serif; /* assuming 'Bevitnam' is your font */
+        }
+        .logo-blue-color {
+            color: #FFA500;
+        }
+        .assign-content{
+            color: #FFA500;
+            position: absolute;
+            left: 12%;
+            font-size: 35px;
+            top:55%;
+            width: 600px;            
+        }
+        .white-top-color {
+            color: #FF1000;
+            position: absolute;
+            left: 12%;
+        }
+        .normal-text-size {
+            font-size: 30px; /* adjust as needed */
+        }
+        .medium-text-size {
+            font-size: 20px; /* adjust as needed */
+        }
+        .large-text-size {
+            font-size: 65px;
+            position: absolute;
+            top: 42%;
+            left: 12%;
+        }
+        .xx-large-size {
+            font-size: 120px;
+            position: absolute;
+            bottom: 30%;
+            left: 10%;
+            visibility: hidden;
+        }
