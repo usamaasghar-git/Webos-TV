@@ -1,7 +1,7 @@
 {
     "vendor": "SNSGroup",
     "icon": "images/icon.png",
-    "main": "dashboard.html",
+    "main": "index.html",
     "id": "com.bitmovin.demo.webapp",
     "title": "SNSGroup",
     "type": "web",
