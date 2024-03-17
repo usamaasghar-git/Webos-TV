@@ -2,7 +2,7 @@
     "vendor": "SNSGroup",
     "icon": "images/icon.png",
     "main": "index.html",
-    "id": "com.bitmovin.demo.webapp",
+    "id": "com.snsgroup.demo.webapp",
     "title": "SNSGroup",
     "type": "web",
     "version": "0.0.1",

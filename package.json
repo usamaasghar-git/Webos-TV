@@ -1,7 +1,7 @@
 {
-  "name": "bitmovin-player-webos-demo",
+  "name": "snsgroup-player-webos-demo",
   "version": "1.0.0",
-  "description": "This repository contains a sample app that used the Bitmovin HTML5 Player (version 8) on LG webOS",
+  "description": "This repository contains a sample app that used the snsgroup HTML5 Player (version 8) on LG webOS",
   "main": "js/main.js",
   "devDependencies": {
     "ares-webos-sdk": "^3.0.5",
@@ -12,16 +12,16 @@
   },
   "scripts": {
     "build": "bin/package",
-    "push": "node_modules/ares-webos-sdk/bin/ares-install.sh --device $DEVICE build/com.bitmovin.demo.webapp_0.0.1_all.ipk",
-    "start": "node_modules/ares-webos-sdk/bin/ares-launch.sh --device $DEVICE --app com.bitmovin.demo.webapp",
-    "debug": "node_modules/ares-webos-sdk/bin/ares-inspect.sh --device $DEVICE --app com.bitmovin.demo.webapp",
-    "stop": "node_modules/ares-webos-sdk/bin/ares-launch.sh --device $DEVICE --close com.bitmovin.demo.webapp",
+    "push": "node_modules/ares-webos-sdk/bin/ares-install.sh --device $DEVICE build/com.snsgroup.demo.webapp_0.0.1_all.ipk",
+    "start": "node_modules/ares-webos-sdk/bin/ares-launch.sh --device $DEVICE --app com.snsgroup.demo.webapp",
+    "debug": "node_modules/ares-webos-sdk/bin/ares-inspect.sh --device $DEVICE --app com.snsgroup.demo.webapp",
+    "stop": "node_modules/ares-webos-sdk/bin/ares-launch.sh --device $DEVICE --close com.snsgroup.demo.webapp",
     "connect": "bin/connect",
     "clear": "rm -rf ./build/*"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/bitmovin/bitmovin-player-webos-demo.git"
+    "url": "git+https://github.com/snsgroup/snsgroup-player-webos-demo.git"
   },
   "keywords": [
     "webos",
@@ -30,7 +30,7 @@
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/bitmovin/bitmovin-player-webos-demo/issues"
+    "url": "https://github.com/snsgroup/snsgroup-player-webos-demo/issues"
   },
-  "homepage": "https://github.com/bitmovin/bitmovin-player-webos-demo#readme"
+  "homepage": "https://github.com/snsgroup/snsgroup-player-webos-demo#readme"
 }
