@@ -78,6 +78,7 @@ socket.on('screen', function(response) {
         videoElement.setAttribute('src', url);
         videoElement.setAttribute('width', screenWidth + 'px');
         videoElement.setAttribute('height', screenHeight + 'px');
+        videoElement.setAttribute('autoplay', 'autoplay');
         videoElement.setAttribute('controls', 'controls');
         contentElement.appendChild(videoElement);
     } else if (item.type === 'url') {

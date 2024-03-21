@@ -37,6 +37,9 @@ function initializeApp() {
     webOS.deviceInfo(function(device) {
         screenHeight = device.screenHeight;
         screenWidth = device.screenWidth;
+        console.log(screenHeight);
+        console.log(screenWidth);
+        
     });
 
     // Connect to Socket.IO server
@@ -93,27 +96,39 @@ function initializeApp() {
                 if (item.type === 'application') {
                     // Initialize PDF.js
                     var url = "https://www.snsplayer.com/" + item.url;
-                    console.log(url)
+                    console.log("PDF URL:", url);
+                
+                    // Load the PDF document
                     pdfjsLib.getDocument(url).promise.then(function(pdfDoc) {
-                        // Render the first page of the PDF
+                        // Get the first page of the PDF
                         pdfDoc.getPage(1).then(function(page) {
                             var canvas = document.createElement('canvas');
                             var context = canvas.getContext('2d');
-                            // Set the canvas dimensions
+                
+                            // Set the canvas dimensions to match the viewport of the PDF page
                             var viewport = page.getViewport({ scale: 1.5 });
                             canvas.width = viewport.width;
                             canvas.height = viewport.height;
-                            // Render the PDF page on the canvas
+                
+                            // Render the PDF page onto the canvas
                             var renderContext = {
                                 canvasContext: context,
                                 viewport: viewport
                             };
-                            page.render(renderContext);
-                            // Append the canvas to the content element
-                            contentElement.appendChild(canvas);
+                            page.render(renderContext).promise.then(function() {
+                                // Append the canvas to the content element
+                                contentElement.appendChild(canvas);
+                            }).catch(function(error) {
+                                console.error("Failed to render PDF page:", error);
+                            });
+                        }).catch(function(error) {
+                            console.error("Failed to get PDF page:", error);
                         });
+                    }).catch(function(error) {
+                        console.error("Failed to load PDF document:", error);
                     });
-                } else if (item.type === 'image') {
+                }
+                 else if (item.type === 'image') {
                     var imageElement = document.createElement('img');
                     var url = "https://www.snsplayer.com/" + item.url;
                     imageElement.setAttribute('src', url);
@@ -127,6 +142,7 @@ function initializeApp() {
                     videoElement.setAttribute('src', url);
                     videoElement.setAttribute('width', screenWidth + 'px');
                     videoElement.setAttribute('height', screenHeight + 'px');
+                    videoElement.setAttribute('autoplay', 'autoplay');
                     videoElement.setAttribute('controls', 'controls');
                     contentElement.appendChild(videoElement);
                 } else if (item.type === 'url') {
