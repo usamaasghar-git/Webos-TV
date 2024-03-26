@@ -93,6 +93,7 @@ function initializeApp() {
                 } else if (orientation === "270") {
                     contentElement.style.transform = "rotate(270deg)";
                 }
+                console.log(item)
                 if (item.type === 'application') {
                     // Initialize PDF.js
                     var url = "https://www.snsplayer.com/" + item.url;
@@ -161,8 +162,13 @@ function initializeApp() {
                     // If currentItemIndex exceeds the playlist length, reset it to zero
                     currentItemIndex = 0;
                 }
+                var duration = item.duration;
+                if(item.duration == ""){
+                    duration = 10000;
+                }
+                console.log(duration)
                 // Schedule display of the next item after a specific time period (in milliseconds)
-                setTimeout(displayNextItem, 10000);
+                setTimeout(displayNextItem, duration);
             }
             // Start displaying the playlist
             displayNextItem();
