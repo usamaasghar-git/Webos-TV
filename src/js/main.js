@@ -18,7 +18,7 @@ socket.on('connect', function() {
     console.log('Socket.IO connected.');
 });
 socket.on('screen', function(response) {
-    console.log('Received screen response:', response);
+    console.log('Received screen response in mian .js:', response);
     if(response.playlistStatus){
         console.log('Received screen playlist status', response.playlistStatus);
         var currentItemIndex = 0;
@@ -43,7 +43,7 @@ socket.on('screen', function(response) {
         }
         if (item.type === 'application') {
             // Initialize PDF.js
-            var url = "https://www.snsplayer.com/" + item.url;
+            var url = item.url;
             console.log(url)
             pdfjsLib.getDocument(url).promise.then(function(pdfDoc) {
                 // Render the first page of the PDF
@@ -66,7 +66,7 @@ socket.on('screen', function(response) {
             });
         } else if (item.type === 'image') {
             var imageElement = document.createElement('img');
-            var url = "https://www.snsplayer.com/" + item.url;
+            var url = item.url;
             imageElement.setAttribute('src', url);
             imageElement.setAttribute('alt', item.name);
             imageElement.setAttribute('width', screenWidth + 'px');
@@ -74,7 +74,7 @@ socket.on('screen', function(response) {
             contentElement.appendChild(imageElement);
         } else if (item.type === 'video') {
         var videoElement = document.createElement('video');
-        var url = "https://www.snsplayer.com/" + item.url;
+        var url = item.url;
         videoElement.setAttribute('src', url);
         videoElement.setAttribute('width', screenWidth + 'px');
         videoElement.setAttribute('height', screenHeight + 'px');
@@ -83,7 +83,7 @@ socket.on('screen', function(response) {
         contentElement.appendChild(videoElement);
     } else if (item.type === 'url') {
         var iframeElement = document.createElement('iframe');
-        var url = "https://www.snsplayer.com/" + item.url;
+        var url = item.url;
         iframeElement.setAttribute('src', url);
         iframeElement.setAttribute('width', screenWidth + 'px');
         iframeElement.setAttribute('height', screenHeight + 'px');

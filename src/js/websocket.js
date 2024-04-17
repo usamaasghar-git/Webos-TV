@@ -2,9 +2,6 @@ var idValue = "";
 var screenHeight = "";
 var screenWidth = "";
 
-// Function to initialize the app
-function initializeApp() {
-    // Ensure the webOS object is available
     if (typeof webOS !== 'undefined') {
         // Get system ID information
         webOS.service.request('luna://com.webos.service.sm', {
@@ -19,7 +16,7 @@ function initializeApp() {
                 } else {
                     console.log('idValue not found in the response object');
                 }
-                console.log('Result: ' + JSON.stringify(inResponse));
+                // console.log('Result: ' + JSON.stringify(inResponse));
                 // To-Do something
             },
             onFailure: function(inError) {
@@ -37,8 +34,8 @@ function initializeApp() {
     webOS.deviceInfo(function(device) {
         screenHeight = device.screenHeight;
         screenWidth = device.screenWidth;
-        console.log(screenHeight);
-        console.log(screenWidth);
+        // console.log(screenHeight);
+        // console.log(screenWidth);
         
     });
 
@@ -48,7 +45,6 @@ function initializeApp() {
 
     // Event handler for Socket.IO connect
     socket.on('connect', function() {
-        console.log('Socket.IO connected.');
         var dataToSend = {
             detail: {
                 mac: idValue,
@@ -93,10 +89,10 @@ function initializeApp() {
                 } else if (orientation === "270") {
                     contentElement.style.transform = "rotate(270deg)";
                 }
-                console.log(item)
+                // console.log(item)
                 if (item.type === 'application') {
                     // Initialize PDF.js
-                    var url = "https://www.snsplayer.com/" + item.url;
+                    var url = item.url;
                     console.log("PDF URL:", url);
                 
                     // Load the PDF document
@@ -131,7 +127,7 @@ function initializeApp() {
                 }
                  else if (item.type === 'image') {
                     var imageElement = document.createElement('img');
-                    var url = "https://www.snsplayer.com/" + item.url;
+                    var url =item.url;
                     imageElement.setAttribute('src', url);
                     imageElement.setAttribute('alt', item.name);
                     imageElement.setAttribute('width', screenWidth + 'px');
@@ -139,7 +135,7 @@ function initializeApp() {
                     contentElement.appendChild(imageElement);
                 } else if (item.type === 'video') {
                     var videoElement = document.createElement('video');
-                    var url = "https://www.snsplayer.com/" + item.url;
+                    var url =item.url;
                     videoElement.setAttribute('src', url);
                     videoElement.setAttribute('width', screenWidth + 'px');
                     videoElement.setAttribute('height', screenHeight + 'px');
@@ -147,13 +143,15 @@ function initializeApp() {
                     videoElement.setAttribute('controls', 'controls');
                     contentElement.appendChild(videoElement);
                 } else if (item.type === 'url') {
-                    var iframeElement = document.createElement('iframe');
-                    var url = "https://www.snsplayer.com/" + item.url;
-                    iframeElement.setAttribute('src', url);
-                    iframeElement.setAttribute('width', screenWidth + 'px');
-                    iframeElement.setAttribute('height', screenHeight + 'px');
-                    contentElement.appendChild(iframeElement);
-                }
+                    // Assuming you have a WebView component in your WebOS TV app
+                    var webView = new WebView();
+                    var url = item.url;
+                    webView.load(url);
+                    // Style the WebView as needed
+                    webView.style.width = screenWidth + 'px';
+                    webView.style.height = screenHeight + 'px';
+                    contentElement.appendChild(webView);
+                }                
                 messageContainer.appendChild(contentElement);
     
                 // Increment currentItemIndex and check if it exceeds the playlist length
@@ -184,7 +182,3 @@ function initializeApp() {
     socket.on('disconnect', function() {
         console.log('Socket.IO disconnected.');
     });
-}
-
-// Call initializeApp function when the window is loaded
-window.onload = initializeApp;
