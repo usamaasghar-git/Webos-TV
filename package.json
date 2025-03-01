@@ -1,23 +1,28 @@
 {
-  "name": "snsgroup-player-webos-demo",
-  "version": "1.0.0",
+  "name": "snsgroup-player-webos-dev",
+  "version": "0.0.1",
   "description": "This repository contains a sample app that used the snsgroup HTML5 Player (version 8) on LG webOS",
-  "main": "js/main.js",
+  "main": "index.html",
   "devDependencies": {
     "ares-webos-sdk": "^3.0.5",
-    "eslint": "^6.7.2",
+    "eslint": "^8.0.0",
     "eslint-plugin-html": "^6.0.0",
-    "prettier": "^1.19.1",
-    "standard": "^14.3.1"
+    "prettier": "^2.0.0",
+    "standard": "^14.3.1",
+    "cross-env": "^7.0.0"
   },
   "scripts": {
     "build": "bin/package",
-    "push": "node_modules/ares-webos-sdk/bin/ares-install.sh --device $DEVICE build/com.snsgroup.demo.webapp_0.0.1_all.ipk",
-    "start": "node_modules/ares-webos-sdk/bin/ares-launch.sh --device $DEVICE --app com.snsgroup.demo.webapp",
-    "debug": "node_modules/ares-webos-sdk/bin/ares-inspect.sh --device $DEVICE --app com.snsgroup.demo.webapp",
-    "stop": "node_modules/ares-webos-sdk/bin/ares-launch.sh --device $DEVICE --close com.snsgroup.demo.webapp",
+    "push": "cross-env DEVICE=$DEVICE node_modules/ares-webos-sdk/bin/ares-install.sh --device $DEVICE build/com.lg.app.signage.dev_0.0.1_all.ipk",
+    "start": "cross-env DEVICE=$DEVICE node_modules/ares-webos-sdk/bin/ares-launch.sh --device $DEVICE --app com.lg.app.signage.dev",
+    "debug": "cross-env DEVICE=$DEVICE node_modules/ares-webos-sdk/bin/ares-inspect.sh --device $DEVICE --app com.lg.app.signage.dev",
+    "stop": "cross-env DEVICE=$DEVICE node_modules/ares-webos-sdk/bin/ares-launch.sh --device $DEVICE --close com.lg.app.signage.dev",
     "connect": "bin/connect",
-    "clear": "rm -rf ./build/*"
+    "clear": "rm -rf ./build/*",
+    "format": "prettier --write '**/*.js'",
+    "lint": "eslint .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+
   },
   "repository": {
     "type": "git",
@@ -27,7 +32,7 @@
     "webos",
     "lg"
   ],
-  "author": "",
+  "author": "SNS Group",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/snsgroup/snsgroup-player-webos-demo/issues"

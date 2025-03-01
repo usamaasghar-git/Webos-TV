@@ -3,18 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ConstraintLayout</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
-
-    <title>Socket.IO Example</title>
-    <!-- Include necessary scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.3.1/socket.io.js"></script>
-    <link rel="stylesheet" href="./css/styles.css"> <!-- Include your custom CSS -->
+    <link rel="stylesheet" href="./css/main.css"> <!-- Include your custom CSS -->
 </head>
 <body>
-    <div id="message-container"></div>
-    <script type="text/javascript" src="webOSTVjs-1.2.4/webOSTV.js"></script>
-    <!-- Include your main.js file -->
-    <script src="./js/websocket.js"></script>
+<div id="message-container"></div>
+<div id="mainConstraintLayoutHome" style="width: 100%; height: 100%;">
+
+    <div id="preview_display_code" class="logo-blue-color xx-large-size" style="display: block;top:65%;left:11%;">
+        D S P H R M
+    </div>
+
+    <div id="textView2" class="white-top-color normal-text-size" style="top: 39%;">
+        To start, go to the website
+    </div>
+
+    <div id="textView2" class="logo-blue-color large-text-size">
+        <a>sns.groupe.signageplayer</a>
+    </div>
+
+    <div id="textView3" class="white-top-color normal-text-size" style="bottom: 47%;">
+        and add the screen by pair code
+    </div>
+
+    <div id="textView4" class="assign-content" style="display: block;">
+        <a>Please go to the sns.signageplayer.com and assign content to the screen</a>
+    </div>
+
+    <div id="textView5" class="white medium-text-size" style="visibility: hidden; position: absolute; bottom: 10%; left: 18%;">
+        Scan QR code to pair
+    </div>
+
+    <div id="textView6" class="white medium-text-size" style="visibility: hidden; position: absolute; bottom: 85%; left: 50%;">
+        Signage Edition
+    </div>
+
+    <img id="qrcode_view" src="./images/logo.jpg" style="position: absolute; width: 300px; height: 300px; bottom: 30%; left: 70%;" />
+
+</div>
+<script src="./webOSTVjs-1.2.4/webOSTV.js"></script>
+<script src="./js/websocket.js"></script>
 
 </body>
 </html>

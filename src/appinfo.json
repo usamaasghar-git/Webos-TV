@@ -1,12 +1,21 @@
 {
+    "id": "com.lg.app.snsgroup",
     "vendor": "SNSGroup",
-    "icon": "images/icon.png",
-    "main": "index.html",
-    "id": "com.snsgroupe.demo.webapp",
     "title": "SNSGroupe",
-    "type": "web",
     "version": "0.0.1",
+    "type": "web",
+    "main": "index.html",
+    "icon": "images/logo.jpg",
     "iconColor": "#ffffff",
     "bgColor": "#ffffff",
-    "uiRevision": 2
+    "uiRevision": 2,
+    "requiredPermissions": [
+        "INTERNET"
+    ],
+    "removable": true,
+    "allowedMediaTypes": ["video", "image"],
+    "defaultWindowMode": "fullscreen",
+    "requiredMemory": 256,
+    "enyoVersion": "2.7",
+    "appLevel": "developer"
 }

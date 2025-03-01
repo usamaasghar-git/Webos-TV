@@ -1,7 +1,10 @@
 var idValue = "";
 var screenHeight = "";
 var screenWidth = "";
-
+var allDivs = document.querySelectorAll('div'); // Select all div elements
+// Fetch elements
+var previewDisplayCode = document.getElementById("preview_display_code");
+var textView5 = document.getElementById("textView5");
     if (typeof webOS !== 'undefined') {
         // Get system ID information
         webOS.service.request('luna://com.webos.service.sm', {
@@ -45,6 +48,7 @@ var screenWidth = "";
 
     // Event handler for Socket.IO connect
     socket.on('connect', function() {
+        console.log('Socket.IO connected.');
         var dataToSend = {
             detail: {
                 mac: idValue,
@@ -68,6 +72,15 @@ var screenWidth = "";
     socket.on('screen', function(response) {
         console.log('Received screen response:', response);
         if (response.playlistStatus) {
+                // Hide all divs except for the message-container
+        var messageContainer = document.getElementById('message-container'); // Get the message-container div
+        messageContainer.style.display = 'block';   
+        allDivs.forEach(function(div) {
+            // Hide all divs except the one with id="message-container"
+            if (div.id !== 'message-container') {
+                div.style.display = 'none'; // Hide other divs
+            }
+        });
             console.log('Received screen playlist status', response.playlistStatus);
             var currentItemIndex = 0;
             var orientation = response.orientation;
@@ -174,7 +187,39 @@ var screenWidth = "";
             localStorage.setItem('playlistStatus', response.playlistStatus);
             localStorage.setItem('code', response.code);
             localStorage.setItem('connected', response.connected);
-            window.location.href = "dashboard.html";
+            
+            // Retrieve the values from localStorage
+            var playlistStatus = localStorage.getItem('playlistStatus') === 'true'; // Convert to boolean
+            var code = localStorage.getItem('code');
+            var connected = localStorage.getItem('connected') === 'true'; // Convert to boolean
+            
+            console.log("inside else in screen event", connected, playlistStatus, code);
+            
+            // Fetch elements
+            var previewDisplayCode = document.getElementById("preview_display_code");
+            var textView5 = document.getElementById("textView5");
+            var messageContainer= document.getElementById("message-container");            
+            // Check the conditions using boolean logic
+            if (!playlistStatus && !connected) {
+                console.log("in if condition ");
+                allDivs.forEach(function(div) {
+                    div.style.display = 'block'; // Hide other divs
+                });
+                previewDisplayCode.textContent = code; // Set the code text
+                previewDisplayCode.style.display = "block"; // Hide preview_display_code
+                messageContainer.style.display = "none";
+                textView5.style.display = "block"; // Show textView5
+            } else if (!playlistStatus && connected) {
+                console.log("in else if condition ");
+                previewDisplayCode.textContent = code; // Set the code text
+                previewDisplayCode.style.display = "none"; // Show preview_display_code
+                messageContainer.style.display = "none";
+                textView5.style.display = "none"; // Hide textView5
+            } else {
+                // In case of any other condition, you can reset or hide both if needed.
+                previewDisplayCode.style.display = "none"; 
+                textView5.style.display = "none"; 
+            }            
         }
     });
 
