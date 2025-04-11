@@ -233,6 +233,8 @@ var textView5 = document.getElementById("textView5");
                 textView8.style.display = "block";
                 mainConstraintLayoutHome.style.display = "block";
                 textView4.style.display = "block";
+                previewDisplayCode.textContent = "D S P H R M"; // Set the code text
+
                 previewDisplayCode.style.display = "block"; // Hide preview_display_code
                 messageContainer.style.display = "none";
                 textView5.style.display = "none"; // Show textView5
