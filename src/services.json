@@ -1,0 +1,16 @@
+{
+    "services": [
+      {
+        "name": "com.lg.app.signage.service",
+        "description": "SNS Group Service",
+        "commands": [
+          {
+            "name": "startPlayback",
+            "description": "Starts video playback",
+            "public": true
+          }
+        ]
+      }
+    ]
+  }
+  

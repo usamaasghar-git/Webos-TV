@@ -7,6 +7,36 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.3.1/socket.io.js"></script>
     <link rel="stylesheet" href="./css/main.css"> <!-- Include your custom CSS -->
+    <style>
+        /* Ensure the body and HTML take full screen without any spacing */
+        html, body {
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        /* Ensure message container covers the whole screen */
+        #message-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: transparent; /* Change if needed */
+            z-index: 1000; /* Ensure it is on top */
+        }
+
+        /* Ensure main layout also covers the full screen */
+        #mainConstraintLayoutHome {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
 </head>
 <body>
 <div id="message-container"></div>
@@ -20,7 +50,7 @@
         To start, go to the website
     </div>
 
-    <div id="textView2" class="logo-blue-color large-text-size">
+    <div id="textView8" class="logo-blue-color large-text-size">
         <a>sns.groupe.signageplayer</a>
     </div>
 

@@ -2,6 +2,8 @@ var idValue = "";
 var screenHeight = "";
 var screenWidth = "";
 var allDivs = document.querySelectorAll('div'); // Select all div elements
+var playlistFlag = true; // Assuming this flag controls playback
+var currentTimeout = null; // Store timeout ID
 // Fetch elements
 var previewDisplayCode = document.getElementById("preview_display_code");
 var textView5 = document.getElementById("textView5");
@@ -71,16 +73,16 @@ var textView5 = document.getElementById("textView5");
     // Event handler for Socket.IO screen event
     socket.on('screen', function(response) {
         console.log('Received screen response:', response);
-        if (response.playlistStatus) {
-                // Hide all divs except for the message-container
-        var messageContainer = document.getElementById('message-container'); // Get the message-container div
-        messageContainer.style.display = 'block';   
-        allDivs.forEach(function(div) {
-            // Hide all divs except the one with id="message-container"
-            if (div.id !== 'message-container') {
-                div.style.display = 'none'; // Hide other divs
-            }
-        });
+        if (response.playlistStatus && response.playlist.length > 0) {
+            // Hide all divs except for the message-container
+            var messageContainer = document.getElementById('message-container'); // Get the message-container div
+            messageContainer.style.display = 'block';   
+            allDivs.forEach(function(div) {
+                // Hide all divs except the one with id="message-container"
+                if (div.id !== 'message-container') {
+                    div.style.display = 'none'; // Hide other divs
+                }
+            });
             console.log('Received screen playlist status', response.playlistStatus);
             var currentItemIndex = 0;
             var orientation = response.orientation;
@@ -177,13 +179,17 @@ var textView5 = document.getElementById("textView5");
                 if(item.duration == ""){
                     duration = 10000;
                 }
-                console.log(duration)
-                // Schedule display of the next item after a specific time period (in milliseconds)
-                setTimeout(displayNextItem, duration);
+                
+                // Clear any previous timeout to avoid stacking
+                clearTimeout(currentTimeout);
+
+                // Set a new timeout
+                currentTimeout = setTimeout(displayNextItem, duration);
             }
             // Start displaying the playlist
             displayNextItem();
         } else {
+            stopPlaylist();
             localStorage.setItem('playlistStatus', response.playlistStatus);
             localStorage.setItem('code', response.code);
             localStorage.setItem('connected', response.connected);
@@ -197,7 +203,12 @@ var textView5 = document.getElementById("textView5");
             
             // Fetch elements
             var previewDisplayCode = document.getElementById("preview_display_code");
+            var mainConstraintLayoutHome = document.getElementById("mainConstraintLayoutHome");
             var textView5 = document.getElementById("textView5");
+            var textView2 = document.getElementById("textView2");
+            var textView3 = document.getElementById("textView3");
+            var textView4 = document.getElementById("textView4");
+            var textView8 = document.getElementById("textView8");
             var messageContainer= document.getElementById("message-container");            
             // Check the conditions using boolean logic
             if (!playlistStatus && !connected) {
@@ -215,14 +226,32 @@ var textView5 = document.getElementById("textView5");
                 previewDisplayCode.style.display = "none"; // Show preview_display_code
                 messageContainer.style.display = "none";
                 textView5.style.display = "none"; // Hide textView5
+            } else if (playlistStatus && connected && response.playlist.length == 0) {
+                console.log("in else if condition for removing playlist ");
+                textView2.style.display = "block";
+                textView3.style.display = "block";
+                textView8.style.display = "block";
+                mainConstraintLayoutHome.style.display = "block";
+                textView4.style.display = "block";
+                previewDisplayCode.style.display = "block"; // Hide preview_display_code
+                messageContainer.style.display = "none";
+                textView5.style.display = "none"; // Show textView5
             } else {
+                console.log("in else condition");
                 // In case of any other condition, you can reset or hide both if needed.
                 previewDisplayCode.style.display = "none"; 
                 textView5.style.display = "none"; 
             }            
         }
     });
-
+    
+    // **Function to stop playback**
+    function stopPlaylist() {
+        playlistFlag = false;
+        clearTimeout(currentTimeout); // Stop scheduled updates
+        messageContainer.innerHTML = ''; // Clear content
+        console.log("Playback stopped.");
+    }
     // Event handler for Socket.IO disconnect
     socket.on('disconnect', function() {
         console.log('Socket.IO disconnected.');

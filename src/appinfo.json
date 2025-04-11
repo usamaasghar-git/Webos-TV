@@ -1,5 +1,5 @@
 {
-    "id": "com.lg.app.snsgroup",
+    "id": "com.lg.app.signage",
     "vendor": "SNSGroup",
     "title": "SNSGroupe",
     "version": "0.0.1",
@@ -9,13 +9,15 @@
     "iconColor": "#ffffff",
     "bgColor": "#ffffff",
     "uiRevision": 2,
-    "requiredPermissions": [
-        "INTERNET"
-    ],
+    "requiredPermissions": ["INTERNET", "LAUNCH", "WEBOS_SERVICE", "MEDIA_CONTROL"],
     "removable": true,
     "allowedMediaTypes": ["video", "image"],
     "defaultWindowMode": "fullscreen",
     "requiredMemory": 256,
+    "crossDomainSecurity": "disable",
+	"allowAudioCapture": true,
+	"allowVideoCapture": true,
+	"disableBackHistoryAPI": true,
     "enyoVersion": "2.7",
     "appLevel": "developer"
 }

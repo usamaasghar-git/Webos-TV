@@ -1,5 +1,5 @@
 {
-  "name": "snsgroup-player-webos-dev",
+  "name": "com.lg.app.signage",
   "version": "0.0.1",
   "description": "This repository contains a sample app that used the snsgroup HTML5 Player (version 8) on LG webOS",
   "main": "index.html",
@@ -11,12 +11,13 @@
     "standard": "^14.3.1",
     "cross-env": "^7.0.0"
   },
+  
   "scripts": {
-    "build": "bin/package",
-    "push": "cross-env DEVICE=$DEVICE node_modules/ares-webos-sdk/bin/ares-install.sh --device $DEVICE build/com.lg.app.signage.dev_0.0.1_all.ipk",
-    "start": "cross-env DEVICE=$DEVICE node_modules/ares-webos-sdk/bin/ares-launch.sh --device $DEVICE --app com.lg.app.signage.dev",
-    "debug": "cross-env DEVICE=$DEVICE node_modules/ares-webos-sdk/bin/ares-inspect.sh --device $DEVICE --app com.lg.app.signage.dev",
-    "stop": "cross-env DEVICE=$DEVICE node_modules/ares-webos-sdk/bin/ares-launch.sh --device $DEVICE --close com.lg.app.signage.dev",
+    "build": "ares-package ./ -o ./build/",
+    "push": "cross-env DEVICE=$DEVICE node_modules/ares-webos-sdk/bin/ares-install.sh --device $DEVICE build/com.lg.app.signage.ipk",
+    "start": "cross-env DEVICE=$DEVICE node_modules/ares-webos-sdk/bin/ares-launch.sh --device $DEVICE --app com.lg.app.signage",
+    "debug": "cross-env DEVICE=$DEVICE node_modules/ares-webos-sdk/bin/ares-inspect.sh --device $DEVICE --app com.lg.app.signage",
+    "stop": "cross-env DEVICE=$DEVICE node_modules/ares-webos-sdk/bin/ares-launch.sh --device $DEVICE --close com.lg.app.signage",
     "connect": "bin/connect",
     "clear": "rm -rf ./build/*",
     "format": "prettier --write '**/*.js'",
