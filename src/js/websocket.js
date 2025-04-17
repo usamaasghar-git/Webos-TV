@@ -45,7 +45,7 @@ var textView5 = document.getElementById("textView5");
     });
 
     // Connect to Socket.IO server
-    var socket = io('https://www.snsplayer.com');
+    var socket = io('https://groupe.snsplayer.com');
     var messageContainer = document.getElementById('message-container');
 
     // Event handler for Socket.IO connect
@@ -89,103 +89,82 @@ var textView5 = document.getElementById("textView5");
             // Function to display the next item in the playlist
             function displayNextItem() {
                 var item = response.playlist[currentItemIndex];
-                // Clear existing content in the message container
-                messageContainer.innerHTML = '';
-                
                 var contentElement = document.createElement('div');
                 contentElement.classList.add('content-item');
-                // Apply orientation styles based on the orientation value
-                if (orientation === "0") {
-                    contentElement.style.transform = "rotate(0deg)";
-                } else if (orientation === "90") {
-                    contentElement.style.transform = "rotate(90deg)";
-                } else if (orientation === "180") {
-                    contentElement.style.transform = "rotate(180deg)";
-                } else if (orientation === "270") {
-                    contentElement.style.transform = "rotate(270deg)";
-                }
-                // console.log(item)
+            
+                if (orientation === "90") contentElement.style.transform = "rotate(90deg)";
+                else if (orientation === "180") contentElement.style.transform = "rotate(180deg)";
+                else if (orientation === "270") contentElement.style.transform = "rotate(270deg)";
+                else contentElement.style.transform = "rotate(0deg)";
+            
+                let loadPromise;
+            
                 if (item.type === 'application') {
-                    // Initialize PDF.js
-                    var url = item.url;
-                    console.log("PDF URL:", url);
-                
-                    // Load the PDF document
-                    pdfjsLib.getDocument(url).promise.then(function(pdfDoc) {
-                        // Get the first page of the PDF
-                        pdfDoc.getPage(1).then(function(page) {
-                            var canvas = document.createElement('canvas');
-                            var context = canvas.getContext('2d');
-                
-                            // Set the canvas dimensions to match the viewport of the PDF page
-                            var viewport = page.getViewport({ scale: 1.5 });
-                            canvas.width = viewport.width;
-                            canvas.height = viewport.height;
-                
-                            // Render the PDF page onto the canvas
-                            var renderContext = {
-                                canvasContext: context,
-                                viewport: viewport
-                            };
-                            page.render(renderContext).promise.then(function() {
-                                // Append the canvas to the content element
-                                contentElement.appendChild(canvas);
-                            }).catch(function(error) {
-                                console.error("Failed to render PDF page:", error);
+                    loadPromise = pdfjsLib.getDocument(item.url).promise
+                        .then(pdfDoc => pdfDoc.getPage(1))
+                        .then(page => {
+                            return new Promise(resolve => {
+                                const canvas = document.createElement('canvas');
+                                const context = canvas.getContext('2d');
+                                const viewport = page.getViewport({ scale: 1.5 });
+                                canvas.width = viewport.width;
+                                canvas.height = viewport.height;
+                                page.render({ canvasContext: context, viewport }).promise
+                                    .then(() => {
+                                        contentElement.appendChild(canvas);
+                                        resolve();
+                                    });
                             });
-                        }).catch(function(error) {
-                            console.error("Failed to get PDF page:", error);
                         });
-                    }).catch(function(error) {
-                        console.error("Failed to load PDF document:", error);
+            
+                } else if (item.type === 'image') {
+                    loadPromise = new Promise(resolve => {
+                        const img = new Image();
+                        img.src = item.url;
+                        img.alt = item.name;
+                        img.width = screenWidth;
+                        img.height = screenHeight;
+                        img.onload = () => resolve();
+                        img.onerror = () => resolve();
+                        contentElement.appendChild(img);
                     });
-                }
-                 else if (item.type === 'image') {
-                    var imageElement = document.createElement('img');
-                    var url =item.url;
-                    imageElement.setAttribute('src', url);
-                    imageElement.setAttribute('alt', item.name);
-                    imageElement.setAttribute('width', screenWidth + 'px');
-                    imageElement.setAttribute('height', screenHeight + 'px');
-                    contentElement.appendChild(imageElement);
+            
                 } else if (item.type === 'video') {
-                    var videoElement = document.createElement('video');
-                    var url =item.url;
-                    videoElement.setAttribute('src', url);
-                    videoElement.setAttribute('width', screenWidth + 'px');
-                    videoElement.setAttribute('height', screenHeight + 'px');
-                    videoElement.setAttribute('autoplay', 'autoplay');
-                    videoElement.setAttribute('controls', 'controls');
-                    contentElement.appendChild(videoElement);
+                    loadPromise = new Promise(resolve => {
+                        const video = document.createElement('video');
+                        video.src = item.url;
+                        video.width = screenWidth;
+                        video.height = screenHeight;
+                        video.autoplay = true;
+                        video.playsInline = true; // for autoplay on some TVs
+                        video.onloadeddata = () => resolve();
+                        video.onerror = () => resolve();
+                        contentElement.appendChild(video);
+                    });
+            
                 } else if (item.type === 'url') {
-                    // Assuming you have a WebView component in your WebOS TV app
-                    var webView = new WebView();
-                    var url = item.url;
-                    webView.load(url);
-                    // Style the WebView as needed
+                    const webView = new WebView();
+                    webView.load(item.url);
                     webView.style.width = screenWidth + 'px';
                     webView.style.height = screenHeight + 'px';
                     contentElement.appendChild(webView);
-                }                
-                messageContainer.appendChild(contentElement);
-    
-                // Increment currentItemIndex and check if it exceeds the playlist length
-                currentItemIndex++;
-                if (currentItemIndex >= response.playlist.length) {
-                    // If currentItemIndex exceeds the playlist length, reset it to zero
-                    currentItemIndex = 0;
+                    loadPromise = Promise.resolve();
                 }
-                var duration = item.duration;
-                if(item.duration == ""){
-                    duration = 10000;
-                }
-                
-                // Clear any previous timeout to avoid stacking
-                clearTimeout(currentTimeout);
-
-                // Set a new timeout
-                currentTimeout = setTimeout(displayNextItem, duration);
+            
+                // only when the new content is ready, update the screen
+                loadPromise.then(() => {
+                    messageContainer.innerHTML = '';
+                    messageContainer.appendChild(contentElement);
+            
+                    // Proceed to next item
+                    currentItemIndex = (currentItemIndex + 1) % response.playlist.length;
+                    let duration = parseInt(item.duration || "10000");
+            
+                    clearTimeout(currentTimeout);
+                    currentTimeout = setTimeout(displayNextItem, duration);
+                });
             }
+            
             // Start displaying the playlist
             displayNextItem();
         } else {

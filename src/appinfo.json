@@ -9,15 +9,13 @@
     "iconColor": "#ffffff",
     "bgColor": "#ffffff",
     "uiRevision": 2,
-    "requiredPermissions": ["INTERNET", "LAUNCH", "WEBOS_SERVICE", "MEDIA_CONTROL"],
+    "requiredPermissions": [
+        "INTERNET"
+    ],
     "removable": true,
     "allowedMediaTypes": ["video", "image"],
     "defaultWindowMode": "fullscreen",
     "requiredMemory": 256,
-    "crossDomainSecurity": "disable",
-	"allowAudioCapture": true,
-	"allowVideoCapture": true,
-	"disableBackHistoryAPI": true,
     "enyoVersion": "2.7",
     "appLevel": "developer"
 }

@@ -8,34 +8,42 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.3.1/socket.io.js"></script>
     <link rel="stylesheet" href="./css/main.css"> <!-- Include your custom CSS -->
     <style>
-        /* Ensure the body and HTML take full screen without any spacing */
-        html, body {
-            height: 100%;
-            width: 100%;
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-        }
+           html, body {
+                height: 100%;
+                width: 100%;
+                margin: 0;
+                padding: 0;
+                overflow: hidden;
+                background-color: white; /* optional: avoid flash if ever empty */
+            }
 
-        /* Ensure message container covers the whole screen */
-        #message-container {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: transparent; /* Change if needed */
-            z-index: 1000; /* Ensure it is on top */
-        }
+            #message-container {
+                position: fixed; /* change from absolute to fixed */
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                margin: 0;
+                padding: 0;
+                z-index: 1000;
+                background-color: transparent; /* or black if needed */
+            }
 
-        /* Ensure main layout also covers the full screen */
-        #mainConstraintLayoutHome {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-        }
+            .content-item {
+                width: 100%;
+                height: 100%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                overflow: hidden;
+            }
+
+            video, img, canvas {
+                display: block;
+                object-fit: cover;
+                max-width: 100%;
+                max-height: 100%;
+            }
     </style>
 </head>
 <body>
