@@ -45,7 +45,7 @@ var textView5 = document.getElementById("textView5");
     });
 
     // Connect to Socket.IO server
-    var socket = io('https://groupe.snsplayer.com');
+    var socket = io('https://snsplayer.com');
     var messageContainer = document.getElementById('message-container');
 
     // Event handler for Socket.IO connect
