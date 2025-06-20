@@ -1,57 +1,29 @@
+window.webSocketLoaded = true;
 var idValue = "";
 var screenHeight = "";
 var screenWidth = "";
 var allDivs = document.querySelectorAll('div'); // Select all div elements
 var playlistFlag = true; // Assuming this flag controls playback
 var currentTimeout = null; // Store timeout ID
+let socketConnected = false;
+let deviceIdFetched = false;
+let joinEmitted = false;
+    setTimeout(function() {
+        if (typeof idValue === "undefined" || !document.getElementById("alert-indicator")) {
+            console.warn("❌ JavaScript likely failed to load. Forcing reload.");
+            location.reload();
+        }
+    }, 8000); // Wait 8s for JS to load
+
 // Fetch elements
 var previewDisplayCode = document.getElementById("preview_display_code");
 var textView5 = document.getElementById("textView5");
-    if (typeof webOS !== 'undefined') {
-        // Get system ID information
-        webOS.service.request('luna://com.webos.service.sm', {
-            method: 'deviceid/getIDs',
-            parameters: {
-                idType: ['LGUDID'],
-            },
-            onSuccess: function(inResponse) {
-                if (inResponse && inResponse.idList && inResponse.idList.length > 0) {
-                    idValue = inResponse.idList[0].idValue;
-                    // Now you can use the idValue for further processing
-                } else {
-                    console.log('idValue not found in the response object');
-                }
-                // console.log('Result: ' + JSON.stringify(inResponse));
-                // To-Do something
-            },
-            onFailure: function(inError) {
-                console.log('Failed to get system ID information');
-                console.log('[' + inError.errorCode + ']: ' + inError.errorText);
-                // To-Do something
-                return;
-            },
-        });
-    } else {
-        console.error('webOS object is not defined. Make sure your app is running in a webOS TV environment.');
-    }
+    
+        function tryEmitJoinEvent() {
+    if (joinEmitted) return;
 
-    // Get device screen information
-    webOS.deviceInfo(function(device) {
-        screenHeight = device.screenHeight;
-        screenWidth = device.screenWidth;
-        // console.log(screenHeight);
-        // console.log(screenWidth);
-        
-    });
-
-    // Connect to Socket.IO server
-    var socket = io('https://snsplayer.com');
-    var messageContainer = document.getElementById('message-container');
-
-    // Event handler for Socket.IO connect
-    socket.on('connect', function() {
-        console.log('Socket.IO connected.');
-        var dataToSend = {
+    if (socketConnected && deviceIdFetched && idValue) {
+        const dataToSend = {
             detail: {
                 mac: idValue,
                 ram: { total: "1992 MB", free: "1159 MB" },
@@ -67,7 +39,85 @@ var textView5 = document.getElementById("textView5");
                 }
             }
         };
+        console.log("✅ Emitting join with MAC:", idValue);
         socket.emit('join', dataToSend);
+        joinEmitted = true;
+    } else {
+        console.warn("⏳ Waiting: connected =", socketConnected, ", idValue =", idValue);
+    }
+}
+
+
+    function fetchDeviceIdWithRetry(retryCount) {
+        console.log('Fetching device ID...');
+        retryCount = retryCount || 0;
+
+        if (typeof webOS === 'undefined') {
+            console.error('webOS object is not defined. Make sure your app is running in a webOS TV environment.');
+            return;
+        }
+
+        // Get system ID information
+        webOS.service.request('luna://com.webos.service.sm', {
+            method: 'deviceid/getIDs',
+            parameters: {
+                idType: ['LGUDID']
+            },
+            onSuccess: function (inResponse) {
+                if (inResponse && inResponse.idList && inResponse.idList.length > 0) {
+                    idValue = inResponse.idList[0].idValue;
+                    console.log('Device ID fetched:', idValue);
+                    // proceed to use idValue (emit socket, etc.)
+                    deviceIdFetched = true;
+                    tryEmitJoinEvent();
+                } else {
+                    console.warn('idValue not found in the response object (retry #' + retryCount + ')');
+                    if (retryCount < 3) {
+                        setTimeout(function () {
+                            fetchDeviceIdWithRetry(retryCount + 1);
+                        }, 2000); // retry after 2s
+                    }
+                }
+            },
+            onFailure: function (inError) {
+                console.error('Failed to get system ID information');
+                console.error('[' + inError.errorCode + ']: ' + inError.errorText);
+
+                if (retryCount < 3) {
+                    setTimeout(function () {
+                        fetchDeviceIdWithRetry(retryCount + 1);
+                    }, 2000); // retry after 2s
+                }
+            }
+        });
+    }
+
+document.addEventListener('DOMContentLoaded', function () {
+    console.log("🌐 DOM fully loaded. Starting device ID fetch...");
+    fetchDeviceIdWithRetry();
+});
+
+
+
+
+    // Get device screen information
+    webOS.deviceInfo(function(device) {
+        screenHeight = device.screenHeight;
+        screenWidth = device.screenWidth;
+        // console.log(screenHeight);
+        // console.log(screenWidth);
+        
+    });
+
+    // Connect to Socket.IO server
+    var socket = io('https://groupe.snsplayer.com');
+    var messageContainer = document.getElementById('message-container');
+
+    // Event handler for Socket.IO connect
+    socket.on('connect', function() {
+        socketConnected = true;
+        tryEmitJoinEvent();
+        console.log('Socket.IO connected.');
     });
 
     // Event handler for Socket.IO screen event
@@ -136,12 +186,15 @@ var textView5 = document.getElementById("textView5");
                         video.width = screenWidth;
                         video.height = screenHeight;
                         video.autoplay = true;
-                        video.playsInline = true; // for autoplay on some TVs
+                        video.playsInline = true;
+                        video.muted = true; // Mute to allow autoplay
                         video.onloadeddata = () => resolve();
-                        video.onerror = () => resolve();
+                        video.onerror = (e) => {
+                            console.error("Video failed to load:", e);
+                            resolve(); // Proceed to next
+                        };
                         contentElement.appendChild(video);
                     });
-            
                 } else if (item.type === 'url') {
                     const webView = new WebView();
                     webView.load(item.url);
@@ -158,7 +211,16 @@ var textView5 = document.getElementById("textView5");
             
                     // Proceed to next item
                     currentItemIndex = (currentItemIndex + 1) % response.playlist.length;
-                    let duration = parseInt(item.duration || "10000");
+                    var videoEl = contentElement.querySelector('video');
+                    var duration = 10000;
+
+                    if (item.duration && !isNaN(parseInt(item.duration))) {
+                        duration = parseInt(item.duration);
+                    } else if (item.type === 'video' && videoEl && videoEl.duration && !isNaN(videoEl.duration)) {
+                        duration = videoEl.duration * 1000;
+                    }
+                    console.log("duration", duration);
+
             
                     clearTimeout(currentTimeout);
                     currentTimeout = setTimeout(displayNextItem, duration);
@@ -182,7 +244,7 @@ var textView5 = document.getElementById("textView5");
             
             // Fetch elements
             var previewDisplayCode = document.getElementById("preview_display_code");
-            var mainConstraintLayoutHome = document.getElementById("mainConstraintLayoutHome");
+             var mainConstraintLayoutHome = document.getElementById("mainConstraintLayoutHome");
             var textView5 = document.getElementById("textView5");
             var textView2 = document.getElementById("textView2");
             var textView3 = document.getElementById("textView3");
@@ -206,13 +268,18 @@ var textView5 = document.getElementById("textView5");
                 messageContainer.style.display = "none";
                 textView5.style.display = "none"; // Hide textView5
             } else if (playlistStatus && connected && response.playlist.length == 0) {
+                // Clear localStorage to re-fetch fresh state on next screen load
+                localStorage.removeItem('playlistStatus');
+                localStorage.removeItem('connected');
+                localStorage.removeItem('code');
                 console.log("in else if condition for removing playlist ");
                 textView2.style.display = "block";
                 textView3.style.display = "block";
                 textView8.style.display = "block";
                 mainConstraintLayoutHome.style.display = "block";
                 textView4.style.display = "block";
-                previewDisplayCode.textContent = "D S P H R M"; // Set the code text
+                previewDisplayCode.textContent = code || "D S P H R M";
+                
 
                 previewDisplayCode.style.display = "block"; // Hide preview_display_code
                 messageContainer.style.display = "none";
@@ -237,3 +304,41 @@ var textView5 = document.getElementById("textView5");
     socket.on('disconnect', function() {
         console.log('Socket.IO disconnected.');
     });
+function showStatusDot(color) {
+    let dot = document.getElementById("net-status-dot");
+    if (!dot) {
+        dot = document.createElement("div");
+        dot.id = "net-status-dot";
+        dot.style.position = "fixed";
+        dot.style.top = "5px";
+        dot.style.right = "5px";
+        dot.style.width = "15px";
+        dot.style.height = "15px";
+        dot.style.borderRadius = "50%";
+        dot.style.zIndex = "10000";
+        document.body.appendChild(dot);
+    }
+
+    dot.style.backgroundColor = color;
+
+    // If green, hide after 10 seconds
+    if (color === 'green') {
+        clearTimeout(window.greenTimeout); // prevent overlapping timeouts
+        window.greenTimeout = setTimeout(() => {
+            dot.style.backgroundColor = 'transparent'; // hide
+        }, 10000);
+    }
+}
+
+// Event listeners for network changes
+window.addEventListener('online', () => showStatusDot('green'));
+window.addEventListener('offline', () => showStatusDot('red'));
+
+// Initial check
+if (navigator.onLine) {
+    showStatusDot('green');
+} else {
+    showStatusDot('red');
+}
+
+

@@ -1,6 +1,6 @@
 {
   "id": "com.lg.app.signage",
-  "version": "0.0.1",
+  "version": "1.0.1",
   "app": "com.lg.app.signage",
   "name": "com.lg.app.signage",
   "description": "This repository contains a sample app that used the snsgroup HTML5 Player (version 8) on LG webOS",
