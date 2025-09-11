@@ -93,7 +93,7 @@ webOS.deviceInfo(function (device) {
     screenWidth = device.screenWidth;
 });
 
-var socket = io('https://groupe.snsplayer.com');
+var socket = io('https://app.theplayerai.com');
 var messageContainer = document.getElementById('message-container');
 
 socket.on('connect', function () {
@@ -124,7 +124,8 @@ socket.on('screen', function (response) {
         var orientation = response.orientation;
 
         function displayNextItem() {
-            var item = response.playlist[currentItemIndex];
+            var item = response.playlist[currentItemIndex].content[0];
+            console.log("Displaying item:", item);
             var contentElement = document.createElement('div');
             contentElement.classList.add('content-item');
 
