@@ -18,7 +18,6 @@ setTimeout(function () {
 
 // Fetch elements
 var previewDisplayCode = document.getElementById("preview_display_code");
-var textView5 = document.getElementById("textView5");
 
 function tryEmitJoinEvent() {
     if (joinEmitted) return;
@@ -63,11 +62,11 @@ function fetchDeviceIdWithRetry(retryCount) {
         onSuccess: function (inResponse) {
             if (inResponse && inResponse.idList && inResponse.idList.length > 0) {
                 idValue = inResponse.idList[0].idValue;
-                console.log('Device ID fetched:', idValue);
+                //console.log('Device ID fetched:', idValue);
                 deviceIdFetched = true;
                 tryEmitJoinEvent();
             } else {
-                console.warn('idValue not found in the response object (retry #' + retryCount + ')');
+                //console.warn('idValue not found in the response object (retry #' + retryCount + ')');
                 if (retryCount < 3) {
                     setTimeout(() => fetchDeviceIdWithRetry(retryCount + 1), 2000);
                 }
@@ -124,7 +123,7 @@ socket.on('screen', function (response) {
         var orientation = response.orientation;
 
         function displayNextItem() {
-            var item = response.playlist[currentItemIndex].content[0];
+            var item = response.playlist[0].content[currentItemIndex];
             console.log("Displaying item:", item);
             var contentElement = document.createElement('div');
             contentElement.classList.add('content-item');
@@ -204,16 +203,16 @@ socket.on('screen', function (response) {
                 messageContainer.innerHTML = '';
                 messageContainer.appendChild(contentElement);
 
-                currentItemIndex = (currentItemIndex + 1) % response.playlist.length;
+                currentItemIndex = (currentItemIndex + 1) % response.playlist[0].content.length;
                 var videoEl = contentElement.querySelector('video');
                 var duration = 10000;
 
                 if (item.duration && !isNaN(parseInt(item.duration))) {
-                    duration = parseInt(item.duration);
+                    duration = parseInt(item.duration * 1000);
                 } else if (item.type === 'video' && videoEl && videoEl.duration && !isNaN(videoEl.duration)) {
                     duration = videoEl.duration * 1000;
                 }
-                console.log("duration", duration);
+              //  console.log("duration", duration);
 
                 clearTimeout(currentTimeout);
                 currentTimeout = setTimeout(displayNextItem, duration);
@@ -230,11 +229,10 @@ socket.on('screen', function (response) {
         var code = localStorage.getItem('code');
         var connected = localStorage.getItem('connected') === 'true';
 
-        console.log("inside else in screen event", connected, playlistStatus, code);
+       // console.log("inside else in screen event", connected, playlistStatus, code);
 
         var previewDisplayCode = document.getElementById("preview_display_code");
         var mainConstraintLayoutHome = document.getElementById("mainConstraintLayoutHome");
-        var textView5 = document.getElementById("textView5");
         var textView2 = document.getElementById("textView2");
         var textView3 = document.getElementById("textView3");
         var textView4 = document.getElementById("textView4");
@@ -245,12 +243,10 @@ socket.on('screen', function (response) {
             previewDisplayCode.textContent = code;
             previewDisplayCode.style.display = "block";
             messageContainer.style.display = "none";
-            textView5.style.display = "block";
         } else if (!playlistStatus && connected) {
             previewDisplayCode.textContent = code;
             previewDisplayCode.style.display = "none";
             messageContainer.style.display = "none";
-            textView5.style.display = "none";
         } else if (playlistStatus && connected && response.playlist.length == 0) {
             localStorage.removeItem('playlistStatus');
             localStorage.removeItem('connected');
@@ -263,10 +259,8 @@ socket.on('screen', function (response) {
             previewDisplayCode.textContent = code || "D S P H R M";
             previewDisplayCode.style.display = "block";
             messageContainer.style.display = "none";
-            textView5.style.display = "none";
         } else {
             previewDisplayCode.style.display = "none";
-            textView5.style.display = "none";
         }
     }
 });
@@ -275,11 +269,11 @@ function stopPlaylist() {
     playlistFlag = false;
     clearTimeout(currentTimeout);
     messageContainer.innerHTML = '';
-    console.log("Playback stopped.");
+    //console.log("Playback stopped.");
 }
 
 socket.on('disconnect', function () {
-    console.log('Socket.IO disconnected.');
+    //console.log('Socket.IO disconnected.');
 });
 
 function showStatusDot(color) {

@@ -1,107 +1,83 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
-    <meta http-equiv="Pragma" content="no-cache" />
-    <meta http-equiv="Expires" content="0" />
-    <script src="./webOSTVjs-1.2.4/webOSTV.js" defer></script>
-    <script src="./js/cache.js?v=4" defer></script>
-    <script src="./js/websocket.js?v=4" defer></script>
-    <title>ConstraintLayout</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.3.1/socket.io.js"></script>
-    
-    <link rel="stylesheet" href="./css/main.css"> <!-- Include your custom CSS -->
-    <style>
-           html, body {
-                height: 100%;
-                width: 100%;
-                margin: 0;
-                padding: 0;
-                overflow: hidden;
-                background-color: white; /* optional: avoid flash if ever empty */
-            }
-
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <script src="./webOSTVjs-1.2.4/webOSTV.js" defer></script>
+  <script src="./js/cache.js?v=4" defer></script>
+  <script src="./js/websocket.js?v=4" defer></script>
+  <title>ConstraintLayout</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.3.1/socket.io.js"></script>
+  <style>
+    html, body {
+      height: 100%;
+      width: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background-color: #2F4C65;
+    }
     #message-container {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        margin: 0;
-        padding: 0;
-        z-index: 1000;
-        background-color: transparent;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 1000;
+      background-color: transparent;
     }
-
-    .content-item {
-        width: 100vw;
-        height: 100vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        overflow: hidden;
+    a {
+      text-decoration: none;
+      color: inherit;
     }
-
-    video, img, canvas, iframe, object {
-        width: 100%;
-        height: 100%;
-        object-fit: fill;
-        background: transparent;
-        display: block;
+    #mainConstraintLayoutHome {
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: center;
+      height: 100vh;
+      text-align: center;
+      padding-top: 8%;
+      gap: 28px; /* Increased spacing between all items */
     }
-</style>
-
+    #qrcode_view {
+      width: 32%;
+      height: auto;
+    }
+    #preview_display_code {
+      font-size: 6.5rem;
+      font-weight: bold;
+      color: white;
+      margin-top: 10px;
+    }
+    #textView8 {
+      font-size: 4.8rem;
+      color: white;
+    }
+    #textView3 {
+      font-size: 3.2rem;
+      color: white;
+      margin-top: 15px;
+    }
+  </style>
 </head>
 <body>
-<div id="message-container"></div>
-<div id="alert-indicator"
-     style="
-         position: fixed;
-         top: 10px;
-         right: 10px;
-         width: 20px;
-         height: 20px;
-         border-radius: 50%;
-         background-color: transparent;
-         z-index: 2147483647;
-         pointer-events: none;">
-</div>
+  <div id="message-container"></div>
+  <div id="alert-indicator"
+       style="position: fixed; top: 10px; right: 10px; width: 20px; height: 20px; border-radius: 50%; background-color: transparent; z-index: 2147483647; pointer-events: none;">
+  </div>
 
-<div id="mainConstraintLayoutHome" style="width: 100%; height: 100%;">
-
-    <div id="preview_display_code" class="logo-blue-color xx-large-size" style="display: block;top:65%;left:11%;">
-        D S P H R M
+  <div id="mainConstraintLayoutHome">
+    <img id="qrcode_view" src="./images/playerailogo.png" alt="Logo" />
+    <div id="preview_display_code">D S P H R M</div>
+    <div id="textView8">
+      <a href="#">groupe.snsplayer.com</a>
     </div>
-
-    <div id="textView2" class="white-top-color normal-text-size" style="top: 39%;">
-        To start, go to the website
-    </div>
-
-    <div id="textView8" class="logo-blue-color large-text-size">
-        <a>groupe.snsplayer.com</a>
-    </div>
-
-    <div id="textView3" class="white-top-color normal-text-size" style="bottom: 47%;">
-        and add the screen by pair code
-    </div>
-
-    <div id="textView4" class="assign-content" style="display: block;">
-        <a>Please go to the groupe.snsplayer.com and assign content to the screen</a>
-    </div>
-
-    <div id="textView5" class="white medium-text-size" style="visibility: hidden; position: absolute; bottom: 10%; left: 18%;">
-        Scan QR code to pair
-    </div>
-
-    <div id="textView6" class="white medium-text-size" style="visibility: hidden; position: absolute; bottom: 85%; left: 50%;">
-        Signage Edition
-    </div>
-
-    <img id="qrcode_view" src="./images/logo.jpg" style="position: absolute; width: 300px; height: 300px; bottom: 30%; left: 70%;" />
-
-</div>
+    <div id="textView3">Pair the device and start using</div>
+  </div>
 </body>
 </html>
