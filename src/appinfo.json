@@ -5,7 +5,7 @@
     "version": "1.0.1",
     "type": "web",
     "main": "index.html",
-    "icon": "images/playerailogo.png",
+    "icon": "images/theplayerailogo.png",
     "iconColor": "#ffffff",
     "bgColor": "#ffffff",
     "uiRevision": 2,
