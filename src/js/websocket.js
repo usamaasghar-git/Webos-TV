@@ -123,152 +123,158 @@ socket.on('screen', function (response) {
         var orientation = response.orientation;
 
         function displayNextItem() {
-            const s = response.schedule;
-        const tz = s.timezone === 'UTC' ? 'Asia/Karachi' : s.timezone;
+    const s = response.schedule;
 
-        const now = new Date(new Date().toLocaleString('en-US', { timeZone: tz }));
-        const startDate = new Date(new Date(s.startDate).toLocaleString('en-US', { timeZone: tz }));
-        const endDate   = new Date(new Date(s.endDate).toLocaleString('en-US', { timeZone: tz }));
-            const inDateRange = now >= startDate && now <= endDate;
+    // ✅ CASE 1: No schedule → directly play playlist
+    if (!s || Object.keys(s).length === 0) {
+        console.log("ℹ No schedule → playing playlist without checks");
+        playPlaylistItem(); // helper function below
+        return;
+    }
 
-            // --- DAY OF WEEK ---
-            const currentDay = now.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
-            const inDayList = Array.isArray(s.daysOfWeek) && s.daysOfWeek
-                .map(d => d.toLowerCase())
-                .includes(currentDay);
+    // --- CASE 2: Schedule exists → perform checks ---
+    const tz = s.timezone === 'UTC' ? 'Asia/Karachi' : s.timezone;
+    const now = new Date(new Date().toLocaleString('en-US', { timeZone: tz }));
+    const startDate = new Date(new Date(s.startDate).toLocaleString('en-US', { timeZone: tz }));
+    const endDate   = new Date(new Date(s.endDate).toLocaleString('en-US', { timeZone: tz }));
+    const inDateRange = now >= startDate && now <= endDate;
 
-            // --- TIME RANGE ---
-            const parseHM = (hm) => {
-                const [h, m] = hm.split(':').map(Number);
-                return h * 60 + m;
-            };
-            const nowMinutes = parseHM(now.toTimeString().slice(0,5)); // "HH:MM" → total minutes
-            const startMinutes = parseHM(s.startTime);
-            const endMinutes = parseHM(s.endTime);
-            const inTimeRange = nowMinutes >= startMinutes && nowMinutes <= endMinutes;
-                        // --- FINAL VALIDATION ---
-            if(!s.isActive || !inDateRange || !inDayList || !inTimeRange) {
-                stopPlaylist();
-                console.log("❌ Schedule found but NOT within valid window → not starting playlist");
+    const currentDay = now.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+    const inDayList = Array.isArray(s.daysOfWeek) &&
+        s.daysOfWeek.map(d => d.toLowerCase()).includes(currentDay);
 
-                // Clear previous content
-                messageContainer.innerHTML = '';
-                messageContainer.style.display = 'flex';
-                messageContainer.style.flexDirection = 'column';
-                messageContainer.style.justifyContent = 'center';
-                messageContainer.style.alignItems = 'center';
-                messageContainer.style.height = '100vh';
-                messageContainer.style.width = '100vw';
-                messageContainer.style.backgroundColor = '#2F4C65'; // optional: keep screen dark
+    const parseHM = (hm) => {
+        const [h, m] = hm.split(':').map(Number);
+        return h * 60 + m;
+    };
+    const nowMinutes = parseHM(now.toTimeString().slice(0,5));
+    const startMinutes = parseHM(s.startTime);
+    const endMinutes = parseHM(s.endTime);
+    const inTimeRange = nowMinutes >= startMinutes && nowMinutes <= endMinutes;
 
-                // Create the text element
-                const noPlaylistMsg = document.createElement('div');
-                noPlaylistMsg.textContent = 'No Playlist Scheduled';
-                noPlaylistMsg.style.color = 'white';
-                noPlaylistMsg.style.fontSize = '5rem';
-                noPlaylistMsg.style.fontWeight = 'bold';
-                noPlaylistMsg.style.textAlign = 'center';
+    if (!s.isActive || !inDateRange || !inDayList || !inTimeRange) {
+        stopPlaylist();
+        console.log("❌ Schedule found but NOT within valid window → not starting playlist");
 
-                // Append to container
-                messageContainer.appendChild(noPlaylistMsg);
-            } else
-            {
-                var item = response.playlist[0].content[currentItemIndex];
-                console.log("Displaying item:", item);
-                var contentElement = document.createElement('div');
-                contentElement.classList.add('content-item');
+        messageContainer.innerHTML = '';
+        messageContainer.style.display = 'flex';
+        messageContainer.style.flexDirection = 'column';
+        messageContainer.style.justifyContent = 'center';
+        messageContainer.style.alignItems = 'center';
+        messageContainer.style.height = '100vh';
+        messageContainer.style.width = '100vw';
+        messageContainer.style.backgroundColor = '#2F4C65';
 
-                if (orientation === "90") {
-                    contentElement.style.transform = `rotate(90deg) scale(${screenHeight / screenWidth}, ${screenWidth / screenHeight})`;
-                } else if (orientation === "180") {
-                    contentElement.style.transform = "rotate(180deg) scale(1,1)";
-                } else if (orientation === "270") {
-                    contentElement.style.transform = `rotate(270deg) scale(${screenWidth / screenHeight}, ${screenHeight / screenWidth})`;
-                } else {
-                    contentElement.style.transform = "rotate(0deg) scale(1,1)";
-                }
-                contentElement.style.transformOrigin = "center center";
+        const noPlaylistMsg = document.createElement('div');
+        noPlaylistMsg.textContent = 'No Playlist Scheduled';
+        noPlaylistMsg.style.color = 'white';
+        noPlaylistMsg.style.fontSize = '5rem';
+        noPlaylistMsg.style.fontWeight = 'bold';
+        noPlaylistMsg.style.textAlign = 'center';
 
-                let loadPromise;
+        messageContainer.appendChild(noPlaylistMsg);
+    } else {
+        // ✅ CASE 3: Within schedule → play playlist
+        playPlaylistItem();
+    }
 
-                if (item.type === 'application') {
-                    loadPromise = fetchWithCache(item.url)
-                        .then(cachedUrl => pdfjsLib.getDocument(cachedUrl).promise)
-                        .then(pdfDoc => pdfDoc.getPage(1))
-                        .then(page => new Promise(resolve => {
-                            const canvas = document.createElement('canvas');
-                            const context = canvas.getContext('2d');
-                            const viewport = page.getViewport({ scale: 1.5 });
-                            canvas.width = viewport.width;
-                            canvas.height = viewport.height;
-                            page.render({ canvasContext: context, viewport }).promise
-                                .then(() => { contentElement.appendChild(canvas); resolve(); })
-                                .catch(() => resolve());
-                        }))
-                        .catch(() => Promise.resolve());
-                } else if (item.type === 'image') {
-                    loadPromise = new Promise(async (resolve) => {
-                        try {
-                            const img = new Image();
-                            img.src = await fetchWithCache(item.url);
-                            img.alt = item.name;
-                            img.width = screenWidth;
-                            img.height = screenHeight;
-                            img.onload = () => resolve();
-                            img.onerror = () => resolve();
-                            contentElement.appendChild(img);
-                        } catch (e) {
-                            console.error("Image load error:", e);
-                            resolve();
-                        }
-                    });
-                } else if (item.type === 'video') {
-                    loadPromise = new Promise(async (resolve) => {
-                        try {
-                            const video = document.createElement('video');
-                            video.src = await fetchWithCache(item.url);
-                            video.width = screenWidth;
-                            video.height = screenHeight;
-                            video.autoplay = true;
-                            video.playsInline = true;
-                            video.muted = true;
-                            video.onloadeddata = () => resolve();
-                            video.onerror = () => resolve();
-                            contentElement.appendChild(video);
-                        } catch (e) {
-                            console.error("Video load error:", e);
-                            resolve();
-                        }
-                    });
-                } else if (item.type === 'url') {
-                    const webView = new WebView();
-                    webView.load(item.url);
-                    webView.style.width = screenWidth + 'px';
-                    webView.style.height = screenHeight + 'px';
-                    contentElement.appendChild(webView);
-                    loadPromise = Promise.resolve();
-                }
+    // --- Helper to render and rotate items ---
+    function playPlaylistItem() {
+        var item = response.playlist[0].content[currentItemIndex];
+        console.log("Displaying item:", item);
+        var contentElement = document.createElement('div');
+        contentElement.classList.add('content-item');
 
-                loadPromise.then(() => {
-                    messageContainer.innerHTML = '';
-                    messageContainer.appendChild(contentElement);
-
-                    currentItemIndex = (currentItemIndex + 1) % response.playlist[0].content.length;
-                    var videoEl = contentElement.querySelector('video');
-                    var duration = 10000;
-
-                    if (item.duration && !isNaN(parseInt(item.duration))) {
-                        duration = parseInt(item.duration * 1000);
-                    } else if (item.type === 'video' && videoEl && videoEl.duration && !isNaN(videoEl.duration)) {
-                        duration = videoEl.duration * 1000;
-                    }
-                //  console.log("duration", duration);
-
-                    clearTimeout(currentTimeout);
-                    currentTimeout = setTimeout(displayNextItem, duration);
-                });
-            }
+        if (orientation === "90") {
+            contentElement.style.transform = `rotate(90deg) scale(${screenHeight / screenWidth}, ${screenWidth / screenHeight})`;
+        } else if (orientation === "180") {
+            contentElement.style.transform = "rotate(180deg) scale(1,1)";
+        } else if (orientation === "270") {
+            contentElement.style.transform = `rotate(270deg) scale(${screenWidth / screenHeight}, ${screenHeight / screenWidth})`;
+        } else {
+            contentElement.style.transform = "rotate(0deg) scale(1,1)";
         }
+        contentElement.style.transformOrigin = "center center";
+
+        let loadPromise;
+        if (item.type === 'application') {
+            loadPromise = fetchWithCache(item.url)
+                .then(cachedUrl => pdfjsLib.getDocument(cachedUrl).promise)
+                .then(pdfDoc => pdfDoc.getPage(1))
+                .then(page => new Promise(resolve => {
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+                    const viewport = page.getViewport({ scale: 1.5 });
+                    canvas.width = viewport.width;
+                    canvas.height = viewport.height;
+                    page.render({ canvasContext: context, viewport }).promise
+                        .then(() => { contentElement.appendChild(canvas); resolve(); })
+                        .catch(() => resolve());
+                }))
+                .catch(() => Promise.resolve());
+        } else if (item.type === 'image') {
+            loadPromise = new Promise(async (resolve) => {
+                try {
+                    const img = new Image();
+                    img.src = await fetchWithCache(item.url);
+                    img.alt = item.name;
+                    img.width = screenWidth;
+                    img.height = screenHeight;
+                    img.onload = () => resolve();
+                    img.onerror = () => resolve();
+                    contentElement.appendChild(img);
+                } catch (e) {
+                    console.error("Image load error:", e);
+                    resolve();
+                }
+            });
+        } else if (item.type === 'video') {
+            loadPromise = new Promise(async (resolve) => {
+                try {
+                    const video = document.createElement('video');
+                    video.src = await fetchWithCache(item.url);
+                    video.width = screenWidth;
+                    video.height = screenHeight;
+                    video.autoplay = true;
+                    video.playsInline = true;
+                    video.muted = true;
+                    video.onloadeddata = () => resolve();
+                    video.onerror = () => resolve();
+                    contentElement.appendChild(video);
+                } catch (e) {
+                    console.error("Video load error:", e);
+                    resolve();
+                }
+            });
+        } else if (item.type === 'url') {
+            const webView = new WebView();
+            webView.load(item.url);
+            webView.style.width = screenWidth + 'px';
+            webView.style.height = screenHeight + 'px';
+            contentElement.appendChild(webView);
+            loadPromise = Promise.resolve();
+        }
+
+        loadPromise.then(() => {
+            messageContainer.innerHTML = '';
+            messageContainer.appendChild(contentElement);
+
+            currentItemIndex = (currentItemIndex + 1) % response.playlist[0].content.length;
+            var videoEl = contentElement.querySelector('video');
+            var duration = 10000;
+
+            if (item.duration && !isNaN(parseInt(item.duration))) {
+                duration = parseInt(item.duration * 1000);
+            } else if (item.type === 'video' && videoEl && videoEl.duration && !isNaN(videoEl.duration)) {
+                duration = videoEl.duration * 1000;
+            }
+
+            clearTimeout(currentTimeout);
+            currentTimeout = setTimeout(displayNextItem, duration);
+        });
+    }
+}
+
         // 🕒 Get schedule-aware playback
         if (!response.schedule || Object.keys(response.schedule).length === 0) {
             // No schedule at all → always start playlist
