@@ -5,9 +5,12 @@ var screenWidth = "";
 var allDivs = document.querySelectorAll('div');
 var playlistFlag = true;
 var currentTimeout = null;
-let socketConnected = false;
-let deviceIdFetched = false;
-let joinEmitted = false;
+var socketConnected = false;
+var deviceIdFetched = false;
+var joinEmitted = false;
+var scheduleTimer = null;
+var lastSchedule = null;
+var endTimeTimer = null;
 
 setTimeout(function () {
     if (typeof idValue === "undefined" || !document.getElementById("alert-indicator")) {
@@ -102,9 +105,12 @@ socket.on('connect', function () {
 });
 
 // 🔄 Handle reconnect to refresh playlist
-socket.io.on('reconnect', (attempt) => {
-    console.log('🔄 Socket reconnected (attempt:', attempt, '). Requesting updated playlist...');
+socket.io.on('reconnect', function(attempt) {
+    console.log('Socket reconnected (attempt:', attempt, '). Requesting updated playlist...');
     joinEmitted = false; // Reset so join can re-emit
+    clearInterval(scheduleTimer); // Clear any existing schedule timer
+    clearInterval(endTimeTimer); // Clear any existing end time timer
+    lastSchedule = null; // Clear stored schedule
     tryEmitJoinEvent();
     socket.emit('requestScreenUpdate', { mac: idValue }); // Ask server for fresh playlist
     showStatusDot('green');
@@ -131,64 +137,138 @@ socket.on('screen', function (response) {
         function displayNextItem() {
             // guard
             if (!playlistFlag) {
-                console.log('Playlist flag false - not continuing' + playlistFlag);
+                console.log('Playlist flag false - not continuing');
                 return;
             }
 
-            const s = response.schedule;
+            var s = response.schedule;
 
-            // ✅ CASE 1: No schedule → directly play playlist
-            if (!s || Object.keys(s).length === 0) {
-                console.log("ℹ No schedule → playing playlist without checks");
+            // CASE 1: No schedule - play immediately
+            if (!s || s.length === 0 || Object.keys(s).length === 0) {
+                console.log("No schedule - playing playlist immediately");
+                clearInterval(scheduleTimer);
+                lastSchedule = null;
                 playPlaylistItem();
                 return;
             }
 
-            // --- CASE 2: Schedule exists → perform checks ---
-            const tz = s.timezone === 'UTC' ? 'Asia/Karachi' : s.timezone;
-            const now = new Date(new Date().toLocaleString('en-US', { timeZone: tz }));
-            const startDate = new Date(new Date(s.startDate).toLocaleString('en-US', { timeZone: tz }));
-            const endDate = new Date(new Date(s.endDate).toLocaleString('en-US', { timeZone: tz }));
-            const inDateRange = now >= startDate && now <= endDate;
-
-            const currentDay = now.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
-            const inDayList = Array.isArray(s.daysOfWeek) &&
-                s.daysOfWeek.map(d => d.toLowerCase()).includes(currentDay);
-
-            const parseHM = (hm) => {
-                const [h, m] = hm.split(':').map(Number);
-                return h * 60 + m;
-            };
-            const nowMinutes = parseHM(now.toTimeString().slice(0,5));
-            const startMinutes = parseHM(s.startTime);
-            const endMinutes = parseHM(s.endTime);
-            const inTimeRange = nowMinutes >= startMinutes && nowMinutes <= endMinutes;
-            
-            if (!s.isActive || !inDateRange || !inDayList || !inTimeRange) {
-                stopPlaylist();
-                console.log("❌ Schedule found but NOT within valid window → not starting playlist");
-
-                messageContainer.innerHTML = '';
-                messageContainer.style.display = 'flex';
-                messageContainer.style.flexDirection = 'column';
-                messageContainer.style.justifyContent = 'center';
-                messageContainer.style.alignItems = 'center';
-                messageContainer.style.height = '100vh';
-                messageContainer.style.width = '100vw';
-                messageContainer.style.backgroundColor = '#2F4C65';
-
-                const noPlaylistMsg = document.createElement('div');
-                noPlaylistMsg.textContent = 'No Playlist Scheduled';
-                noPlaylistMsg.style.color = 'white';
-                noPlaylistMsg.style.fontSize = '5rem';
-                noPlaylistMsg.style.fontWeight = 'bold';
-                noPlaylistMsg.style.textAlign = 'center';
-
-                messageContainer.appendChild(noPlaylistMsg);
+            // CASE 2: Check if current time is within schedule
+            if (isWithinSchedule(s)) {
+                console.log("Within schedule time - starting playlist");
+                clearInterval(scheduleTimer);
+                lastSchedule = null;
+                playPlaylistItem();
             } else {
-                // ✅ CASE 3: Within schedule → play playlist
-                playPlaylistItem();
+                // CASE 3: Outside schedule time - wait and check again
+                console.log("Outside schedule time - waiting...");
+                lastSchedule = s;
+                showWaitingMessage(s);
+                startScheduleTimer(s);
             }
+        }
+
+        function isWithinSchedule(schedule) {
+            if (!schedule.isActive) return false;
+
+            // Get current time in schedule timezone
+            var tz = schedule.timezone === 'UTC' ? 'Asia/Karachi' : schedule.timezone;
+            var now = new Date();
+
+            // Check date range
+            var startDate = new Date(schedule.startDate);
+            var endDate = new Date(schedule.endDate);
+            if (now < startDate || now > endDate) return false;
+
+            // Check day of week
+            var dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+            var currentDay = dayNames[now.getDay()];
+            var scheduleDays = schedule.daysOfWeek || [];
+            var dayMatch = false;
+            for (var i = 0; i < scheduleDays.length; i++) {
+                if (scheduleDays[i].toLowerCase() === currentDay) {
+                    dayMatch = true;
+                    break;
+                }
+            }
+            if (!dayMatch) return false;
+
+            // Check time range
+            var currentTime = now.getHours() * 60 + now.getMinutes();
+            var startTime = timeToMinutes(schedule.startTime);
+            var endTime = timeToMinutes(schedule.endTime);
+
+            return currentTime >= startTime && currentTime <= endTime;
+        }
+
+        function timeToMinutes(timeStr) {
+            var parts = timeStr.split(':');
+            return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+        }
+
+        function showWaitingMessage(schedule) {
+            messageContainer.innerHTML = '';
+            messageContainer.style.display = 'flex';
+            messageContainer.style.flexDirection = 'column';
+            messageContainer.style.justifyContent = 'center';
+            messageContainer.style.alignItems = 'center';
+            messageContainer.style.height = '100vh';
+            messageContainer.style.width = '100vw';
+            messageContainer.style.backgroundColor = '#2F4C65';
+
+            var waitingMsg = document.createElement('div');
+            waitingMsg.textContent = 'Playlist Scheduled - Waiting for Time';
+            waitingMsg.style.color = 'white';
+            waitingMsg.style.fontSize = '3rem';
+            waitingMsg.style.fontWeight = 'bold';
+            waitingMsg.style.textAlign = 'center';
+
+            var timeInfo = document.createElement('div');
+            timeInfo.textContent = 'Scheduled: ' + schedule.startTime + ' - ' + schedule.endTime;
+            timeInfo.style.color = '#cccccc';
+            timeInfo.style.fontSize = '2rem';
+            timeInfo.style.marginTop = '20px';
+
+            messageContainer.appendChild(waitingMsg);
+            messageContainer.appendChild(timeInfo);
+        }
+
+        function startScheduleTimer(schedule) {
+            if (scheduleTimer) {
+                clearInterval(scheduleTimer);
+            }
+            console.log("Starting schedule timer - checking every 10 seconds");
+            scheduleTimer = setInterval(function() {
+                if (isWithinSchedule(schedule)) {
+                    console.log("Schedule time reached - starting playlist");
+                    clearInterval(scheduleTimer);
+                    lastSchedule = null;
+                    playlistFlag = true;
+                    messageContainer.innerHTML = '';
+                    messageContainer.style.display = 'block';
+                    startPlaylistWithEndTimer(schedule);
+                    displayNextItem();
+                }
+            }, 10000); // Check every 10 seconds
+        }
+
+        function startPlaylistWithEndTimer(schedule) {
+            // Clear any existing end time timer
+            if (endTimeTimer) {
+                clearInterval(endTimeTimer);
+            }
+
+            // Start checking if we've passed the end time (every 30 seconds)
+            console.log("Starting end time checker for schedule:", schedule.endTime);
+            endTimeTimer = setInterval(function() {
+                if (!isWithinSchedule(schedule)) {
+                    console.log("Schedule end time reached - stopping playlist");
+                    clearInterval(endTimeTimer);
+                    stopPlaylist();
+                    lastSchedule = schedule;
+                    showWaitingMessage(schedule);
+                    startScheduleTimer(schedule); // Start waiting for next schedule window
+                }
+            }, 30000); // Check every 30 seconds
         }
 
         // --- Helper to render and rotate items ---
@@ -200,17 +280,17 @@ socket.on('screen', function (response) {
             contentElement.classList.add('content-item');
 
             if (orientation === "90") {
-                contentElement.style.transform = `rotate(90deg) scale(${screenHeight / screenWidth}, ${screenWidth / screenHeight})`;
+                contentElement.style.transform = "rotate(90deg) scale(" + (screenHeight / screenWidth) + ", " + (screenWidth / screenHeight) + ")";
             } else if (orientation === "180") {
                 contentElement.style.transform = "rotate(180deg) scale(1,1)";
             } else if (orientation === "270") {
-                contentElement.style.transform = `rotate(270deg) scale(${screenWidth / screenHeight}, ${screenHeight / screenWidth})`;
+                contentElement.style.transform = "rotate(270deg) scale(" + (screenWidth / screenHeight) + ", " + (screenHeight / screenWidth) + ")";
             } else {
                 contentElement.style.transform = "rotate(0deg) scale(1,1)";
             }
             contentElement.style.transformOrigin = "center center";
 
-            let loadPromise;
+            var loadPromise;
 
             if (item.type === 'application') {
                 loadPromise = fetchWithCache(item.url)
@@ -305,17 +385,17 @@ socket.on('screen', function (response) {
                         contentElement.innerHTML = ''; // Clear previous content
 
                         // 🎥 YouTube embed
-                        const ytMatch = embedUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([^?&]+)/);
+                        var ytMatch = embedUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([^?&]+)/);
                         if (ytMatch) {
-                            const videoId = ytMatch[1];
-                            embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&modestbranding=1&rel=0`;
+                            var videoId = ytMatch[1];
+                            embedUrl = 'https://www.youtube.com/embed/' + videoId + '?autoplay=1&mute=1&loop=1&playlist=' + videoId + '&controls=0&modestbranding=1&rel=0';
                         }
 
                         // 🎥 Vimeo embed
-                        const vimeoMatch = embedUrl.match(/vimeo\.com\/(\d+)/);
+                        var vimeoMatch = embedUrl.match(/vimeo\.com\/(\d+)/);
                         if (vimeoMatch) {
-                            const videoId = vimeoMatch[1];
-                            embedUrl = `https://player.vimeo.com/video/${videoId}?autoplay=1&muted=1&loop=1&background=1&controls=0`;
+                            var videoId = vimeoMatch[1];
+                            embedUrl = 'https://player.vimeo.com/video/' + videoId + '?autoplay=1&muted=1&loop=1&background=1&controls=0';
                         }
 
                         // 🖼 Canva / Other protected sites fallback
@@ -334,7 +414,7 @@ socket.on('screen', function (response) {
                             
                             // Option 1: Preview image (replace with your exported image URL if available)
                             element = document.createElement('img');
-                            element.src = `https://via.placeholder.com/${screenWidth}x${screenHeight}?text=Canva+Preview`;
+                            element.src = 'https://via.placeholder.com/' + screenWidth + 'x' + screenHeight + '?text=Canva+Preview';
                             element.style.objectFit = 'cover';
 
                             // Option 2: Automatically launch webOS browser as last resort
@@ -360,13 +440,13 @@ socket.on('screen', function (response) {
                         element.style.position = 'absolute';
                         element.style.top = '0';
                         element.style.left = '0';
-                        element.style.width = `${screenWidth}px`;
-                        element.style.height = `${screenHeight}px`;
+                        element.style.width = screenWidth + 'px';
+                        element.style.height = screenHeight + 'px';
                         element.style.border = 'none';
                         element.style.zIndex = '9999';
                         element.setAttribute('frameborder', '0');
                         element.style.pointerEvents = 'none'; // disable interaction
-                        if (item.settings?.fullscreen || true) element.allowFullscreen = true;
+                        if (item.settings && item.settings.fullscreen || true) element.allowFullscreen = true;
 
                         // Append to DOM
                         contentElement.appendChild(element);
@@ -487,7 +567,7 @@ socket.on('screen', function (response) {
                     };
 
                     // Determine duration (prefer server-provided item.duration)
-                    let durationMs = 10000; // fallback
+                    var durationMs = 10000; // fallback
                     if (item.duration && !isNaN(parseInt(item.duration)) && item.type != 'video') {
                         durationMs = parseInt(item.duration) * 1000;
                         console.log('Using item.duration (ms):', durationMs);
@@ -515,7 +595,7 @@ socket.on('screen', function (response) {
                     messageContainer.appendChild(contentElement);
 
                     // compute duration for image/pdf/url
-                    let duration = 10000; // default fallback
+                    var duration = 10000; // default fallback
                     if (item.duration && !isNaN(parseInt(item.duration))) {
                         duration = parseInt(item.duration) * 1000;
                     } else {
@@ -537,69 +617,22 @@ socket.on('screen', function (response) {
             });
         }
 
-        // Start playback respecting schedule
-        if (!response.schedule || Object.keys(response.schedule).length === 0) {
+        // Start playback respecting schedule - use simple logic
+        var schedule = response.schedule;
+        if (!schedule || schedule.length === 0 || Object.keys(schedule).length === 0) {
             console.log("No schedule found, starting playlist");
             displayNextItem();
         } else {
-            const s = response.schedule;
-            const tz = s.timezone === 'UTC' ? 'Asia/Karachi' : s.timezone;
-
-            const now = new Date(new Date().toLocaleString('en-US', { timeZone: tz }));
-            const startDate = new Date(new Date(s.startDate).toLocaleString('en-US', { timeZone: tz }));
-            const endDate   = new Date(new Date(s.endDate).toLocaleString('en-US', { timeZone: tz }));
-            const inDateRange = now >= startDate && now <= endDate;
-
-            // --- DAY OF WEEK ---
-            const currentDay = now.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
-            console.log("Current day:", currentDay);
-            console.log("Schedule daysOfWeek:", s);
-            const inDayList = Array.isArray(s.daysOfWeek) && s.daysOfWeek
-                .map(d => d.toLowerCase())
-                .includes(currentDay);
-
-            // --- TIME RANGE ---
-            const parseHM = (hm) => {
-                const [h, m] = hm.split(':').map(Number);
-                return h * 60 + m;
-            };
-            const nowMinutes = parseHM(now.toTimeString().slice(0,5)); // "HH:MM" → total minutes
-            const startMinutes = parseHM(s.startTime);
-            const endMinutes = parseHM(s.endTime);
-            const inTimeRange = nowMinutes >= startMinutes && nowMinutes <= endMinutes;
-
-            console.log("Schedule checks: isActive =", s.isActive,
-                ", inDateRange =", inDateRange,
-                ", inDayList =", inDayList,
-                ", inTimeRange =", inTimeRange);
-            // --- FINAL VALIDATION ---
-            if (s.isActive && inDateRange && inDayList && inTimeRange) {
-                console.log("✅ Schedule active and within time/day/date → starting playlist");
+            if (isWithinSchedule(schedule)) {
+                console.log("Schedule active and within time - starting playlist");
+                startPlaylistWithEndTimer(schedule);
                 displayNextItem();
             } else {
+                console.log("Schedule found but NOT within valid window - waiting for time");
                 stopPlaylist();
-                console.log("❌ Schedule found but NOT within valid window → not starting playlist");
-
-                // Clear previous content
-                messageContainer.innerHTML = '';
-                messageContainer.style.display = 'flex';
-                messageContainer.style.flexDirection = 'column';
-                messageContainer.style.justifyContent = 'center';
-                messageContainer.style.alignItems = 'center';
-                messageContainer.style.height = '100vh';
-                messageContainer.style.width = '100vw';
-                messageContainer.style.backgroundColor = '#2F4C65'; // optional: keep screen dark
-
-                // Create the text element
-                const noPlaylistMsg = document.createElement('div');
-                noPlaylistMsg.textContent = 'No Playlist Scheduled';
-                noPlaylistMsg.style.color = 'white';
-                noPlaylistMsg.style.fontSize = '5rem';
-                noPlaylistMsg.style.fontWeight = 'bold';
-                noPlaylistMsg.style.textAlign = 'center';
-
-                // Append to container
-                messageContainer.appendChild(noPlaylistMsg);
+                lastSchedule = schedule;
+                showWaitingMessage(schedule);
+                startScheduleTimer(schedule);
             }
         }
     } else {
@@ -651,6 +684,8 @@ socket.on('screen', function (response) {
 function stopPlaylist() {
     playlistFlag = false;
     clearTimeout(currentTimeout);
+    clearInterval(scheduleTimer);
+    clearInterval(endTimeTimer);
     messageContainer.innerHTML = '';
     //console.log("Playback stopped.");
 }
@@ -683,8 +718,8 @@ function showStatusDot(color) {
     }
 }
 
-window.addEventListener('online', () => showStatusDot('green'));
-window.addEventListener('offline', () => showStatusDot('red'));
+window.addEventListener('online', function() { showStatusDot('green'); });
+window.addEventListener('offline', function() { showStatusDot('red'); });
 
 if (navigator.onLine) {
     showStatusDot('green');
